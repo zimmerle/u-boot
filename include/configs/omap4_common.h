@@ -124,6 +124,12 @@
 /* Enabled commands */
 #define CONFIG_CMD_EXT2		/* EXT2 Support                 */
 #define CONFIG_CMD_FAT		/* FAT support                  */
+#define CONFIG_CMD_EXT4
+#define CONFIG_CMD_FS_GENERIC
+
+/* bootz: zImage/initrd.img support */
+#define CONFIG_CMD_BOOTZ
+#define CONFIG_SUPPORT_RAW_INITRD
 #define CONFIG_CMD_I2C		/* I2C serial bus support	*/
 #define CONFIG_CMD_MMC		/* MMC support                  */
 
@@ -137,7 +143,7 @@
  * Environment setup
  */
 
-#define CONFIG_BOOTDELAY	3
+#define CONFIG_BOOTDELAY	1
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 #define CONFIG_CMD_FS_GENERIC
 #define CONFIG_CMD_EXT2
@@ -156,23 +162,33 @@
 	"bootfile=zImage\0" \
 	"usbtty=cdc_acm\0" \
 	"vram=16M\0" \
+	"defaultdisplay=dvi\0" \
+	"dvimode=1280x720MR-16@60\0" \
+	"buddy=none\0" \
 	"mmcdev=0\0" \
-	"mmcroot=/dev/mmcblk0p2 rw\0" \
-	"mmcrootfstype=ext3 rootwait\0" \
+	"mmcpart=1\0" \
+	"mmcroot=/dev/mmcblk0p2 ro\0" \
+	"mmcrootfstype=ext4 rootwait fixrtc\0" \
 	"mmcargs=setenv bootargs console=${console} " \
+		"buddy=${buddy} "\
 		"vram=${vram} " \
+		"omapfb.mode=${defaultdisplay}:${dvimode} " \
 		"root=${mmcroot} " \
 		"rootfstype=${mmcrootfstype}\0" \
-	"loadbootscript=fatload mmc ${mmcdev} ${loadaddr} boot.scr\0" \
+	"loadbootscript=load mmc ${mmcdev}:${mmcpart} ${loadaddr} boot.scr\0" \
 	"bootscript=echo Running bootscript from mmc${mmcdev} ...; " \
 		"source ${loadaddr}\0" \
-	"loadbootenv=fatload mmc ${mmcdev} ${loadaddr} uEnv.txt\0" \
-	"importbootenv=echo Importing environment from mmc${mmcdev} ...; " \
+	"loadbootenv=load mmc ${mmcdev}:${mmcpart} ${loadaddr} uEnv.txt\0" \
+	"importbootenv=echo Importing environment from mmc (uEnv.txt)...; " \
 		"env import -t ${loadaddr} ${filesize}\0" \
 	"loadimage=load mmc ${bootpart} ${loadaddr} ${bootdir}/${bootfile}\0" \
+	"loaduimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} zImage\0" \
 	"mmcboot=echo Booting from mmc${mmcdev} ...; " \
 		"run mmcargs; " \
 		"bootz ${loadaddr} - ${fdtaddr}\0" \
+	"mmc_classic_boot=echo Booting from mmc${mmcdev} ...; " \
+		"run mmcargs; " \
+		"bootz ${loadaddr}\0" \
 	"findfdt="\
 		"if test $board_name = sdp4430; then " \
 			"setenv fdtfile omap4-sdp.dtb; fi; " \
@@ -200,6 +216,9 @@
 				"echo Running uenvcmd ...;" \
 				"run uenvcmd;" \
 			"fi;" \
+			"if run loaduimage; then " \
+				"run mmc_classic_boot; " \
+			"fi; " \
 		"fi;" \
 		"if run loadimage; then " \
 			"run loadfdt;" \
@@ -219,7 +238,7 @@
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
-#define CONFIG_SYS_MAXARGS		16
+#define CONFIG_SYS_MAXARGS		64
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		(CONFIG_SYS_CBSIZE)
 
@@ -255,7 +274,8 @@
 #define CONFIG_SYS_CACHELINE_SIZE	32
 
 /* Defines for SDRAM init */
-#define CONFIG_SYS_EMIF_PRECALCULATED_TIMING_REGS
+/* Pandaboard ES Rev B3 */
+/* #define CONFIG_SYS_EMIF_PRECALCULATED_TIMING_REGS */
 
 #ifndef CONFIG_SYS_EMIF_PRECALCULATED_TIMING_REGS
 #define CONFIG_SYS_AUTOMATIC_SDRAM_DETECTION
@@ -302,5 +322,9 @@
 #define CONFIG_SPL_LDSCRIPT "$(CPUDIR)/omap-common/u-boot-spl.lds"
 
 #define CONFIG_SYS_THUMB_BUILD
+
+/* FIXME: Should be safe to remove in v3.8.x */
+#define CONFIG_SYS_ENABLE_PADS_ALL
+#define CONFIG_SYS_CLOCKS_ENABLE_ALL
 
 #endif /* __CONFIG_OMAP4_COMMON_H */
